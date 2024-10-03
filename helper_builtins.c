@@ -26,7 +26,7 @@ env_t *insert_env(db_t *db, char *key, char *val)
 				break;
 		if (key[i] == '\0' && current->s[i] == '=')
 			break;
-		prev =current;
+		prev = current;
 		current = current->next;
 	}
 	if (current == NULL)
