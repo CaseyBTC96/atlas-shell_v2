@@ -44,7 +44,7 @@ env_t *insert_env(db_t *db, char *key, char *val)
 	else
 		free(current->s);
 
-	current-> = cat;
+	current->s = cat;
 	sprintf(current->s, "%s=%s", key, val);
 	db->h_diff = 1;
 

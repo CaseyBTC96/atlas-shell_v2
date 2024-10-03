@@ -19,6 +19,10 @@ db_t *build_db(char *pname, char **env)
 	db->ln = 1;
 	db->toexit = 0;
 	db->pstat = 0;
+	db->pid = dup_atoi(getpid());
+	if (db->pid == NULL)
+		return (free_db(db));
+	db->vstat = NULL;
 	db->envh = NULL;
 	db->env = NULL;
 	db->h_size = rev_env(db, env);
@@ -27,8 +31,48 @@ db_t *build_db(char *pname, char **env)
 
 	db->a_max = 0;
 	db->h_diff = 1;
-	db->p_diff = 0;
+
 	return (db);
+}
+
+/**
+* dup_atoi - converts number into new string
+* @n: number to convert to string
+*
+* Return: pointer to new string, else NULL
+*/
+char *dup_atoi(int n)
+{
+	char *out = NULL;
+	int i = n, len = 0;
+
+	if (i == 0)
+	{
+		out = malloc(sizeof(char) * 2);
+		if (out == NULL)
+			return (NULL);
+		out[0] = '0';
+		out[1] = '\0';
+		return (out);
+	}
+
+	while (i > 0)
+	{
+		i /= 10;
+		len++;
+	}
+	out = malloc(sizeof(char) * (len + 1));
+	if (out == NULL)
+		return (NULL);
+
+	for (i = len - 1; n > 0; i--)
+	{
+		out[i] = n % 10 + 48;
+		n /= 10;
+	}
+	out[len] = '\0';
+
+	return (out);
 }
 
 /**
@@ -125,6 +169,12 @@ void *free_db(db_t *db)
 
 	if (db->env != NULL)
 		free(db->env);
+
+	if (db->pid != NULL)
+		free(db->pid);
+
+	if (db->vstat != NULL)
+		free(db->vstat);
 
 	free(db);
 
