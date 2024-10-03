@@ -13,9 +13,6 @@ int op_write(db_t *db, cmd_t *cmd)
 
 	(void)db;
 
-	if (cmd->psep != NULL)
-		printf("SEPERATOR = [%s]\n", cmd->psep);
-
 	for (i = 0; cmd->left[i] != NULL; i++)
 		printf("%d: [%s]\n", i, cmd->left[i]);
 
@@ -39,11 +36,6 @@ int op_append(db_t *db, cmd_t *cmd)
 	int i;
 
 	(void)db;
-
-	if (cmd->psep != NULL)
-		printf("SEPERATOR = [%s]\n", cmd->psep);
-
-	for (i = 0; cmd->left[i] != NULL; i++)
 		printf("%d: [%s]\n", i, cmd->left[i]);
 
 	for (i = 0; cmd->right[i] != NULL; i++)
@@ -66,9 +58,6 @@ int op_read(db_t *db, cmd_t *cmd)
 	int i;
 
 	(void)db;
-
-	if (cmd->psep != NULL)
-		printf("SEPERATOR = [%s]\n", cmd->psep);
 
 	for (i = 0; cmd->left[i] != NULL; i++)
 		printf("%d: [%s]\n", i, cmd->left[i]);
@@ -94,9 +83,6 @@ int op_heredoc(db_t *db, cmd_t *cmd)
 
 	(void)db;
 
-	if (cmd->psep != NULL)
-		printf("SEPERATOR = [%s]\n", cmd->psep);
-
 	for (i = 0; cmd->left[i] != NULL; i++)
 		printf("%d: [%s]\n", i, cmd->left[i]);
 
@@ -120,9 +106,6 @@ int op_pipe(db_t *db, cmd_t *cmd)
 	int i;
 
 	(void)db;
-
-	if (cmd->psep != NULL)
-		printf("SEPERATOR = [%s]\n", cmd->psep);
 
 	for (i = 0; cmd->left[i] != NULL; i++)
 		printf("%d: [%s]\n", i, cmd->left[i]);
