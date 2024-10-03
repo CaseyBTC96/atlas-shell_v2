@@ -77,7 +77,7 @@ int bi_cd(db_t *db, char **cmd)
 		free(tmp);
 	}
 
-	return (0);	
+	return (0);
 
 }
 
