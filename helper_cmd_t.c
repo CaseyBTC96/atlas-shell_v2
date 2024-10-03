@@ -1,11 +1,11 @@
 #include "shell_v2.h"
 
 /**
-* check_path - determines if the command exists in the path
-* @db: reference to database struct
-* @cmd: current command being executed
+* setup_path - determines if the command exists in the path
+* @arg: arg struct to determine file name and store path
+* @db: reference to database struct, used for get_env
 *
-* Return: 0 on success, -1 when not found, -2 on malloc error
+* Return: 0 on success, -1 on path fail or lstat malloc fail, -2 on malloc fail
 */
 int setup_path(arg_t *arg, db_t *db)
 {

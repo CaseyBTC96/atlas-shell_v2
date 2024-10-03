@@ -3,9 +3,8 @@
 /**
 * insert_env - creates a new node if needed, else updates old match
 * @db: reference to database struct
-*
 * @key: key of env to update or add
-* @eval: value to be associated with key
+* @val: value to be associated with key
 * Return: pointer to new node, else NULL
 */
 env_t *insert_env(db_t *db, char *key, char *val)
