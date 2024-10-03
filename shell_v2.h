@@ -105,6 +105,15 @@ typedef struct bball_s
 	int (*f)(db_t *, char **);
 } bball_t;
 
+/* Custom Error Macros */
+#define MALLOC_ERR 0
+#define EXIT_ERR 1
+#define SETENV_ERR1 2
+#define SETENV_ERR2 3
+#define UNSET_ERR1 4
+#define UNSET_ERR2 5
+#define DB_ERR 6
+
 /* Database Functions */
 db_t *build_db(char *pname, char **env);
 char **format_env(db_t *db);
@@ -133,6 +142,9 @@ int bi_env(db_t *, char **);
 int bi_setenv(db_t *, char **);
 int bi_unsetenv(db_t *, char **);
 
+/* Builtin Helpers */
+env_t *insert_env(db_t *db, char **cmd);
+
 /* Redirect functions */
 int op_write(db_t *, cmd_t *);
 int op_append(db_t *, cmd_t *);
@@ -148,6 +160,9 @@ int op_and(int);
 /* String Functions */
 int _strcmp(char *, char *);
 char *_strdup(char *);
-int _atoi(char *, db_t *);
+int _strlen(char *);
+
+/* Error Handling */
+int eprint(int, db_t *, char **);
 
 #endif /* _SHELL_V2_ */
