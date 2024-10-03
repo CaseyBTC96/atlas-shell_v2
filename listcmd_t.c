@@ -68,8 +68,11 @@ void execute_list(listcmd_t *list)
 	current = list->head;
 	while (current != NULL)
 	{
-		tmp = current->next;
+		tmp = current->;
 		current = current->next;
+
+		if (list->db->toexit)
+			continue;
 		if (tmp->psep != NULL && (*tmp->psep)
 				(list->db->pstat))
 			continue;
@@ -77,7 +80,7 @@ void execute_list(listcmd_t *list)
 		if (tmp->opf != NULL)
 			tmp->opf(list->db, tmp);
 		else
-			execute_cmd(list->db, tmp->left);
+			list->db->pstat = execute_cmd(list->db, tmp->left);
 	}
 }
 
