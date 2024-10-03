@@ -122,6 +122,8 @@ int bi_setenv(db_t *db, char **cmd)
 	while (cmd[1][i] != '\0')
 		if (cmd[1][i++] == '=')
 			return (eprint(SETENV_ERR2, db, cmd));
+	if (cmd[2] == NULL)
+		return (0);
 
 	current = insert_env(db, cmd[1], cmd[2]);
 	if (current == NULL)
