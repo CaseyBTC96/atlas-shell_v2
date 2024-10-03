@@ -27,7 +27,7 @@ int bi_exit(db_t *db, char **cmd)
 		i++;
 	}
 
-	db->exit = 1;
+	db->toexit = 1;
 	return (result);
 }
 
