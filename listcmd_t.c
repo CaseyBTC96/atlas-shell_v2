@@ -11,7 +11,7 @@ listcmd_t *build_cmds(char *input, db_t *db)
 {
 	listcmd_t *out;
 
-	input =strtok(input, "\n");
+	input = strtok(input, "\n");
 	out = malloc(sizeof(listcmd_t));
 	if (out == NULL)
 		return (NULL);
@@ -51,7 +51,7 @@ int gen_cmds(listcmd_t *list, char *input)
 				break;
 			}
 		}
-		cmd = build_cmd(&input[start], psep);
+		cmd = build_cmd(list->db, &input[start], psep);
 		if (cmd == NULL)
 			return (-1);
 		cmd->next = NULL;
@@ -77,18 +77,17 @@ void execute_list(listcmd_t *list)
 	current = list->head;
 	while (current != NULL)
 	{
-		tmp = current->;
+		tmp = current;
 		current = current->next;
 
 		if (list->db->toexit)
 			continue;
-		if (tmp->psep != NULL && (*tmp->psep)
-				(list->db->pstat))
+		if (tmp->psep != NULL && (*tmp->psep)(list->db->pstat))
 			continue;
 		if (tmp->opf != NULL)
-			tmp->opf(list->db, tmp);
+			list->db->pstat = tmp->opf(list->db, tmp->head);
 		else
-			list->db->pstat = execute_cmd(list->db, tmp->left);
+			list->db->pstat = execute_arg(list->db, tmp->head);
 	}
 }
 

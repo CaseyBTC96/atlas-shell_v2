@@ -24,6 +24,21 @@ typedef struct env_s
 } env_t;
 
 /**
+* struct arg_s - linked list containing tokenized command args
+* @av: tokenized command args, NULL terminated. for use with execve
+* @path: absolute path of command to be plugged into execve
+* @check_path: status code of path, -1 for path fail, 1 for given, else 0
+* @next: next node
+*/
+typedef struct arg_s
+{
+	char **av;
+	char *path;
+	int check_path;
+	struct arg_s *next;
+} arg_t;
+
+/**
 * struct db_s - database representing the current environment
 * @pname: program name
 * @ln: line number used for error printing
@@ -34,7 +49,8 @@ typedef struct env_s
 * @envh: head of a linked list representation of the environment variables
 * @h_size: the current number of nodes in the envh linked list
 * @h_diff: flag set to mark that envh has been updated
-* @p_diff: flag set to mark that a path has been prepended to cmd
+* @pid: string representation of the shell's process ID
+* @vstat: string representation of pstat
 */
 typedef struct db_s
 {
@@ -47,23 +63,22 @@ typedef struct db_s
 	env_t *envh;
 	int h_size;
 	int h_diff;
-	int p_diff;
+	char *pid;
+	char *vstat;
 } db_t;
 
 /**
 * struct cmd_s - linked list node that holds all info for command execution
-* @left: tokenized array of args left of redirect operator
-* @right: tokenized array of args right of redirect operator
-* @psep: function reference to the seperate operator
+* @head: linked list of argument groups
+* @psep: function reference to the separate operator
 * @opf: function reference to the redirect operator
 * @next: reference to next cmd in the linked list
 */
 typedef struct cmd_s
 {
-	char **left;
-	char **right;
+	arg_t *head;
 	int (*psep)(int);
-	int (*opf)(struct cmd_s *);
+	int (*opf)(db_t *, arg_t *);
 	struct cmd_s *next;
 } cmd_t;
 
@@ -86,7 +101,7 @@ typedef struct listcmd_s
 typedef struct rball_s
 {
 	char op;
-	int (*f)(db_t *, cmd_t *);
+	int (*f)(db_t *, arg_t *);
 } rball_t;
 
 /**
@@ -111,9 +126,13 @@ typedef struct bball_s
 	int (*f)(db_t *, char **);
 } bball_t;
 
+/* Pipe Macros */
+#define READ 0
+#define WRITE 1
+
 /* Custom Error Macros */
 #define MALLOC_ERR 0
-#define SETENV_ERR 1
+#define SETENV_ERR1 1
 #define SETENV_ERR2 2
 #define UNSET_ERR1 3
 #define UNSET_ERR2 4
@@ -121,11 +140,13 @@ typedef struct bball_s
 #define CD_ERR 6
 #define DB_ERR 7
 #define PATH_ERR 8
+#define READ_ERR 9
 
 
 
 /* Database Functions */
 db_t *build_db(char *, char **);
+char *dup_atoi(int n);
 int rev_env(db_t *, char **);
 char **format_env(db_t *);
 void *free_db(db_t *);
@@ -133,25 +154,27 @@ void *free_db(db_t *);
 /* listcmd_t Functions */
 listcmd_t *build_cmds(char *, db_t *);
 int gen_cmds(listcmd_t *, char *);
-void *free_listcmd(listcmd_t *);
 void execute_list(listcmd_t *);
+void *free_listcmd(listcmd_t *);
 
 /* cmd_t Functions */
-cmd_t *build_cmd(char *, char);
-int execute_cmd(db_t *, char **);
-void *free_cmd(cmd_t*);
+cmd_t *build_cmd(db_t *, char *, char);
+arg_t *build_arg(char *, db_t *);
+int execute_arg(db_t *, arg_t *);
+void *free_arg(arg_t *arg);
+void *free_cmd(cmd_t *);
 
 /* cmd_t Helpers */
-int check_path(db_t *, char **);
-int count_words(char *);
-void cut_line(cmd_t *, char *, char *);
+int setup_path(arg_t *, db_t *);
+char *handle_var(char *key, db_t *db);
+int check_pstat(arg_t *arg, db_t *db);
 
 /* Gumball Functions */
-int (*rball(char *))(db_t *, cmd_t *);
-int (*bball(char *))(db_t *, char **);
+int (*rball(char *))(db_t *, arg_t *);
 int (*sball(char))(int);
+int (*bball(char *))(db_t *, char **);
 
-/* Builtin functions */
+/* Builtin Functions */
 int bi_exit(db_t *, char **);
 int bi_cd(db_t *, char **);
 int bi_env(db_t *, char **);
@@ -162,22 +185,24 @@ int bi_unsetenv(db_t *, char **);
 env_t *insert_env(db_t *, char *, char *);
 char *get_env(db_t *, char *);
 
-/* Redirect functions */
-int op_write(db_t *, cmd_t *);
-int op_append(db_t *, cmd_t *);
-int op_read(db_t *, cmd_t *);
-int op_heredoc(db_t *, cmd_t *);
-int op_pipe(db_t *, cmd_t *);
+/* Redirect Functions */
+int op_write(db_t *, arg_t *);
+int op_append(db_t *, arg_t *);
+int op_read(db_t *, arg_t *);
+int op_heredoc(db_t *, arg_t *);
+int op_pipe(db_t *, arg_t *);
 
-/* seperator functions */
+/* Separator Functions */
 int op_semi(int);
 int op_or(int);
 int op_and(int);
 
-/* String Functions */
+/* Misc Helpers */
 int _strcmp(char *, char *);
 char *_strdup(char *);
 int _strlen(char *);
+int count_words(char *);
+void close_all(int (*)[2], int);
 
 /* Error Handling */
 int eprint(int, db_t *, char **);

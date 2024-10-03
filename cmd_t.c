@@ -2,89 +2,162 @@
 
 /**
 * build_cmd - converts a command line into a cmd struct
+* @db: reference to database struct
 * @line: command line to convert
+* @psep: the previous separate operator
 *
 * Return: pointer to new struct, else NULL
 */
-cmd_t *build_cmd(char *line, char psep)
+cmd_t *build_cmd(db_t *db, char *line, char psep)
 {
 	cmd_t *out;
-	int i = 0, len;
+	arg_t *prev = NULL, *current;
+	int i = 0, s, len;
 	char c;
+	int (*opf)(db_t *, arg_t *);
 
 	out = malloc(sizeof(cmd_t));
 	if (out == NULL)
 		return (NULL);
+	out->head = NULL;
 	out->opf = NULL;
 	out->psep = sball(psep);
 	len = _strlen(line);
-	for (i = 0; i < len; i++)
+	while (i < len)
 	{
-		out->opf = rball(&line[i]);
-		if (out->opf != NULL)
+		for (s = i; i < len; i++)
 		{
-			c = line[i];
-			line[i++] = '\0';
-			if (c == line[i])
-				i++;
-			break;
+			opf = rball(&line[i]);
+			if (opf != NULL)
+			{
+				out->opf = opf;
+				c = line[i];
+				line[i] = '\0';
+				if (c == line[i + 1])
+					i++;
+				break;
+			}
 		}
+		current = build_arg(&line[s], db);
+		if (current == NULL)
+			return (free_cmd(out));
+		if (prev != NULL)
+			prev->next = current;
+		else
+			out->head = current;
+		prev = current;
+		i++;
 	}
-	out->left = malloc(sizeof(char *) * (count_words(line) + 1));
-	if (out->left == NULL)
-		return (free_cmd(out));
-	out->right = malloc(sizeof(char *) * (count_words(&line[i]) + 1));
-	if (out->right == NULL)
-		return (free_cmd(out));
-
-	cut_line(out, line, &line[i]);
 
 	return (out);
 }
 
+
 /**
-* execute_cmd - executes a command
+* build_arg - builds an arg_t linked list node
+* @line: line to split into an array of tokens
 * @db: reference to database struct
-* @cmd: double char pointer containing the command to execute
+*
+* Return: pointer to new struct, else NULL
+*/
+arg_t *build_arg(char *line, db_t *db)
+{
+	arg_t *out;
+	char *tmp;
+	int i;
+
+	out = malloc(sizeof(arg_t));
+	if (out == NULL)
+		return (NULL);
+
+	out->next = NULL;
+	out->path = NULL;
+	out->check_path = 0;
+	out->av = malloc(sizeof(char *) * (count_words(line) + 1));
+	if (out->av == NULL)
+		return (free_arg(out));
+
+	for (i = 0; (tmp = strtok(line, " ")); i++)
+	{
+		line = NULL;
+		if (tmp[0] == '#')
+			break;
+		if (tmp[0] == '$' && tmp[1] != '?')
+			out->av[i] = handle_var(tmp, db);
+		else
+			out->av[i] = tmp;
+	}
+	out->av[i] = NULL;
+
+	out->check_path = setup_path(out, db);
+	if (out->check_path == -2 || errno == ENOMEM)
+		return (free_arg(out));
+
+	if (out->path == NULL && out->check_path == 0)
+	{
+		out->check_path = 1;
+		out->path = out->av[0];
+	}
+	return (out);
+}
+
+/**
+* execute_arg - executes a command
+* @db: reference to database struct
+* @arg: current arg struct being executed
 *
 * Return: status code of command that was executed
 */
-int execute_cmd(db_t *db, char **cmd)
+int execute_arg(db_t *db, arg_t *arg)
 {
 	int status;
 	int (*bi)(db_t *, char **);
 
-	bi = bball(cmd[0]);
+	if (check_pstat(arg, db) == -1)
+		return (eprint(MALLOC_ERR, db, NULL));
+
+	bi = bball(arg->av[0]);
 	if (bi != NULL)
-		return (bi(db, cmd));
+		return (bi(db, arg->av));
 
-	db->env =format_env(db);
+	db->env = format_env(db);
 	if (db->env == NULL)
-		return (eprint(MALLOC_ERR, db, cmd)):
+		return (eprint(MALLOC_ERR, db, NULL));
 
-	if (cmd[0] == NULL)
+	if (arg->av[0] == NULL)
 		return (0);
 
-	status = check_path(db, cmd);
-	if (status == -1 && errno != ENOMEM)
-		return (eprint(PATH_ERR, db, cmd));
-	if (status == -2 || errno == ENOMEM)
-		return (eprint(MALLOC_ERR, db, cmd));
+	if (arg->check_path == -1)
+		return (eprint(PATH_ERR, db, arg->av));
 
 	if (!fork())
 	{
-		execve(cmd[0], cmd, db->env);
+		execve(arg->path, arg->av, db->env);
 		perror(NULL);
 		exit(2);
 	}
 	wait(&status);
 
-	if (db->p_diff)
-		free(cmd[0]);
-	db->p_diff = 0;
-
-	return  WEXITSTATUS(status);
+	return (WEXITSTATUS(status));
 }
+
+/**
+* free_arg - frees the memory associated with the arg_t struct
+* @arg: arg to free
+*
+* Return: Always NULL
+*/
+void *free_arg(arg_t *arg)
+{
+	if (arg->av != NULL)
+		free(arg->av);
+	if (arg->path != NULL && arg->check_path != 1)
+		free(arg->path);
+	free(arg);
+
+	return (NULL);
+}
+
 /**
 * free_cmd - frees the cmd_t struct
 * @cmd: pointer to struct to free
@@ -93,13 +166,18 @@ int execute_cmd(db_t *db, char **cmd)
 */
 void *free_cmd(cmd_t *cmd)
 {
+	arg_t *tmp;
+
 	if (cmd == NULL)
 		return (NULL);
 
-	if (cmd->left != NULL)
-		free(cmd->left);
-	if (cmd->right != NULL)
-		free(cmd->right);
+	tmp = cmd->head;
+	while (tmp != NULL)
+	{
+		cmd->head = cmd->head->next;
+		free_arg(tmp);
+		tmp = cmd->head;
+	}
 
 	free(cmd);
 

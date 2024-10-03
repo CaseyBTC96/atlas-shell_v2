@@ -39,21 +39,15 @@ int (*sball(char op))(int)
 {
 	int i;
 	sball_t pot[] = {
-		{'>', &op_write},
-		{'>', &op_append},
-		{'<', &op_read},
-		{'<', &op_heredoc},
-		{'|', &op_pipe},
+		{';', &op_semi},
+		{'|', &op_or},
+		{'&', &op_and},
 		{'\0', NULL}
 	};
 
-	for (i = 0; pot[i].op; i++)
-		if (pot[i].op == op[0])
-		{
-			if (op[0] == op[1])
-				i++;
+	for (i = 0; pot[i].op != '\0'; i++)
+		if (pot[i].op == op)
 			return (pot[i].f);
-		}
 
 	return (NULL);
 }

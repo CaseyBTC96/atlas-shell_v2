@@ -7,17 +7,18 @@
 *
 * Return: 0 on success, -1 when not found, -2 on malloc error
 */
-int check_path(db_t *db, char **cmd)
+int setup_path(arg_t *arg, db_t *db)
 {
 	struct stat st;
-	int i = 0, match = 0;
-	char *slice, *out = NULL, *p, *name = cmd[0], *path = get_env(db, "PATH");
+	int i = 0;
+	char *slice, *out = NULL, *p, *name = arg->av[0], *path = get_env(db, "PATH");
+
+	if (name == NULL)
+		return (0);
 
 	while (name[i])
 		if (name[i++] == '/')
-			match = 1;
-	if (match)
-		return (lstat(name, &st));
+			return (lstat(name, &st));
 	if (path == NULL)
 		return (-1);
 	path = _strdup(path);
@@ -34,8 +35,7 @@ int check_path(db_t *db, char **cmd)
 			return (-2);
 		}
 		sprintf(out, "%s/%s", slice, name);
-		match = lstat(out, &st);
-		if (match == 0)
+		if (lstat(out, &st) == 0)
 			break;
 		free(out);
 		out = NULL;
@@ -45,58 +45,52 @@ int check_path(db_t *db, char **cmd)
 	free(path);
 	if (out == NULL)
 		return (-1);
-	cmd[0] = out;
-	db->p_diff = 1;
+	arg->path = out;
+
 	return (0);
 }
 
 /**
-* cut_line - strtoks left and right into out
-* @out: command struct being built
-* @left: line to cut into left
-* @right: line to cut into right
+* handle_var - handles variable substitution
+* @key: key to match with environment variable
+* @db: reference to database struct
+*
+* Return: pointer to string that replaces variable
 */
-void cut_line(cmd_t *out, char *left, char *right)
+char *handle_var(char *key, db_t *db)
 {
-	int i = 0;
-	char *tmp;
-
-	for (i = 0; (tmp = strtok(left, " ")); i++)
-	{
-		left = NULL;
-		out->left[i] = tmp;
-	}
-	out->left[i] = NULL;
-	for (i = 0; (tmp = strtok(right, " ")); i++)
-	{
-		right = NULL;
-		out->right[i] = tmp;
-	}
-	out->right[i] = NULL;
+	if (key[1] == '$')
+		return (db->pid);
+	if (key[1] != '\0')
+		return (get_env(db, &key[1]));
+	return (key);
 }
 
 /**
-* count_words - counts the words in a string
-* @line: string with words to count
+* check_pstat - determines right before execution if $? is present
+* @arg: arg to check
+* @db: reference to database struct
 *
-* Return: number of words in line, else 0
+* Return: -1 on malloc error, else 0
 */
-int count_words(char *line)
+int check_pstat(arg_t *arg, db_t *db)
 {
-	int i = 0, out = 0;
+	int i = 0;
+	char *key = NULL;
 
-	if (line == NULL || line[0] == '\0')
-		return (0);
-
-	while (line[i] == ' ')
-		i++;
-	while (line[i])
+	while (arg->av[i] != NULL)
 	{
-		out++;
-		while (line[i] && line[i] != ' ')
-			i++;
-		while (line[i] && line[i] == ' ')
-			i++;
+		key = arg->av[i];
+		if (key[0] == '$' && key[1] == '?')
+		{
+			if (db->vstat != NULL)
+				free(db->vstat);
+			db->vstat = dup_atoi(db->pstat);
+			if (db->vstat == NULL)
+				return (-1);
+			arg->av[i] = db->vstat;
+		}
+		i++;
 	}
-	return (out);
+	return (0);
 }
