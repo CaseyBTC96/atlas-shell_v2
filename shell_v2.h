@@ -111,13 +111,13 @@ typedef struct bball_s
 
 /* Custom Error Macros */
 #define MALLOC_ERR 0
-#define EXIT_ERR 1
-#define SETENV_ERR1 2
-#define SETENV_ERR2 3
-#define UNSET_ERR1 4
-#define UNSET_ERR2 5
-#define DB_ERR 6
-#define CD_ERR 7
+#define SETENV_ERR 1
+#define SETENV_ERR2 2
+#define UNSET_ERR1 3
+#define UNSET_ERR2 4
+#define EXIT_ERR 5
+#define CD_ERR 6
+#define DB_ERR 7
 #define PATH_ERR 8
 
 
@@ -179,5 +179,6 @@ int _strlen(char *);
 
 /* Error Handling */
 int eprint(int, db_t *, char **);
+int vfeprint(int code, char *format, ...);
 
 #endif /* _SHELL_V2_ */
