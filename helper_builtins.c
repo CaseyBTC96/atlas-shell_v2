@@ -29,12 +29,12 @@ env_t *insert_env(db_t *db, char *key, char *val)
 		prev =current;
 		current = current->next;
 	}
-
 	if (current == NULL)
 	{
 		current = malloc(sizeof(env_t));
 		if (current == NULL)
 			return (NULL);
+		db->h_size++;
 		current->next = NULL;
 		if (prev != NULL)
 			prev->next = current;
@@ -49,6 +49,7 @@ env_t *insert_env(db_t *db, char *key, char *val)
 		sprintf(current->s, "%s=%s", key, val);
 	else
 		sprintf(current->s, "%s=", key);
+	db->h_diff = 1;
 
 	return (current);
 }
